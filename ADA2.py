@@ -1,6 +1,9 @@
 import random
 from collections import deque
 import time
+# Kenny: Added timeit and matplotlib module
+import timeit
+import matplotlib.pyplot as plt
 import sys
 
 
@@ -40,6 +43,7 @@ def fcfs_schedule(packages):
     scheduler = Scheduler()
     for package in packages:
         scheduler.add_package(package)
+    end = time.time()
     return scheduler.queue
 
 def sjn_schedule(packages):
@@ -151,7 +155,7 @@ def generate_packages(num_packages, max_processing_time, max_deadline=None, max_
             processing_time = random.randint(1, max_processing_time // 2)
 
         elif task_type == 'long': # for long tasks, assign processing time greater than half of maximum processing time
-            processing_time = random.randint(max_processing_time // 2 + 5, max_processing_time)
+            processing_time = random.randint(max_processing_time // 2 + 5, max_processing_time )
 
         else: # not really used but assign processing time within the entire range of max processing time
             processing_time = random.randint(1, max_processing_time)
@@ -167,48 +171,60 @@ def generate_packages(num_packages, max_processing_time, max_deadline=None, max_
 
 # implement!
 def run_simulation(algorithm, packages, time_quantum=None): 
-
-
-    
-    # If statements for appropriate actions
+       
+     # If statements for appropriate action
     if algorithm == 'First Come First Serve':
         result = fcfs_schedule(packages)
+        callables = lambda: result
+        time_taken = timeit.timeit(callables, number=1)
+        space_used = sys.getsizeof(packages) + sys.getsizeof(result)
     elif algorithm == 'Shortest Job First':
         result = sjn_schedule(packages)
+        callables = lambda: result
+        time_taken = timeit.timeit(callables, number=1)
+        space_used = sys.getsizeof(packages) + sys.getsizeof(result)
     elif algorithm == 'Round Robin':
         result = rr_schedule(packages, time_quantum)
+        callables = lambda: result
+        time_taken = timeit.timeit(callables, number=1)
+        space_used = sys.getsizeof(packages) + sys.getsizeof(result)
     elif algorithm == 'Least Slack Time':
         result = lst_schedule(packages)
+        callables = lambda: result
+        time_taken = timeit.timeit(callables, number=1)
+        space_used = sys.getsizeof(packages) + sys.getsizeof(result)
     elif algorithm == 'Proportional Share Schedule':
         result = pss_schedule(packages)
+        callables = lambda: result
+        time_taken = timeit.timeit(callables, number=1)
+        space_used = sys.getsizeof(packages) + sys.getsizeof(result)
     else:
-        raise ValueError(f"Unknown algorithm: {algorithm}")
+         raise ValueError(f"Unknown algorithm: {algorithm}")
 
-    
     # Variables containing appropriate functions
     turnaround_time = calculate_turnaround_time(result)
     waiting_time = calculate_waiting_time(result)
 
-
-
-
-
     # Return all metrics
-    return result, turnaround_time, waiting_time
+    return result, time_taken, space_used, turnaround_time, waiting_time
     
 
 
 # Print dem! final part
 def print_results(algorithms, packages, time_quantum=None, task_type='random'):
     
-   
+    algorithm_runtimes = {}
     for algorithm in algorithms: # Loop algorithms to perform each of dem
         (
             scheduled_packages, 
+            time_taken, 
+            space_used,
             turnaround_time, 
             waiting_time,  
 
         ) = run_simulation(algorithm, packages, time_quantum)
+
+        algorithm_runtimes[algorithm] = time_taken
 
 
         # PRINT SPAAMMMMM!!!
@@ -216,10 +232,12 @@ def print_results(algorithms, packages, time_quantum=None, task_type='random'):
         print(f"Task Type: {task_type}")
         print(f"Scheduled Packages: {[package.id for package in scheduled_packages]}")
         print(f"Average Turnaround Time: {turnaround_time:.2f}")
-        print(f"Average Waiting Time: {waiting_time:.2f}")       
+        print(f"Average Waiting Time: {waiting_time:.2f}")
+        print(f"Time Taken: {time_taken:.8f}")
+        print(f"Space Used: {space_used}")      
         print()
 
-
+    return algorithm_runtimes
 
 if __name__ == "__main__": # heard doing this particular line/chantra is good practice, so  eh, why not?
 
@@ -233,9 +251,17 @@ if __name__ == "__main__": # heard doing this particular line/chantra is good pr
 
     # Generate and print results for short tasks
     short_packages = generate_packages(num_packages, max_processing_time, max_deadline, max_weight, task_type='short')
-    print_results(algorithms, short_packages, time_quantum, task_type='short')
+    short_algorithm_runtimes = print_results(algorithms, short_packages, time_quantum, task_type='short')
     # Seperator line
     print("\n------------------------------------------------------------------------------------------------------------------------------\n------------------------------------------------------------------------------------------------------------------------------\n\n")
     # Generate and print results for long tasks
     long_packages = generate_packages(num_packages, max_processing_time, max_deadline, max_weight, task_type='long')
-    print_results(algorithms, long_packages, time_quantum, task_type='long')
+    long_algorithm_runtimes = print_results(algorithms, long_packages, time_quantum, task_type='long')
+
+    for algorithm in algorithms:
+        plt.scatter(['Short', 'Long'], [short_algorithm_runtimes['First Come First Serve'], long_algorithm_runtimes['First Come First Serve']], label=algorithm)
+        plt.xlabel('Package Type')
+        plt.ylabel('Runtime (seconds)')
+        plt.ylim((0, 0.000001))
+        plt.title(str(algorithm))
+        plt.show()
